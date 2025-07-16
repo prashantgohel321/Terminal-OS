@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal OS - A Designer's CLI</title>
+    <!-- Inter font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Global Styles */
+        :root {
+            --font-mono: 'IBM Plex Mono', monospace;
+            --font-sans: 'Inter', sans-serif;
+            --text-color: #00ff00; /* Retro green */
+            --bg-color: #000000;
+            --accent-color: #00ff00;
+            --border-color: #008800;
+            --shadow-color: rgba(0, 255, 0, 0.5);
+            --input-bg: #001100;
+            --input-border: #00cc00;
+            --scrollbar-thumb: #008800;
+            --scrollbar-track: #000000;
+            --glitch-color1: #ff00ff;
+            --glitch-color2: #00ffff;
+            --glitch-color3: #ffff00;
+        }
+
+        /* Retro Theme */
+        body.theme-retro {
+            --text-color: #00ff00;
+            --bg-color: #000000;
+            --accent-color: #00ff00;
+            --border-color: #008800;
+            --shadow-color: rgba(0, 255, 0, 0.5);
+            --input-bg: #001100;
+            --input-border: #00cc00;
+            --scrollbar-thumb: #008800;
+            --scrollbar-track: #000000;
+        }
+
+        /* Cyberpunk Theme */
+        body.theme-cyberpunk {
+            --text-color: #00ffff; /* Cyan */
+            --bg-color: #1a0033; /* Dark purple */
+            --accent-color: #ff00ff; /* Magenta */
+            --border-color: #8a2be2; /* Blue violet */
+            --shadow-color: rgba(255, 0, 255, 0.7);
+            --input-bg: #0d001a;
+            --input-border: #ff00ff;
+            --scrollbar-thumb: #8a2be2;
+            --scrollbar-track: #1a0033;
+        }
+
+        /* Minimal Theme */
+        body.theme-minimal {
+            --text-color: #333333;
+            --bg-color: #f0f0f0;
+            --accent-color: #666666;
+            --border-color: #cccccc;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --input-bg: #ffffff;
+            --input-border: #dddddd;
+            --scrollbar-thumb: #aaaaaa;
+            --scrollbar-track: #f0f0f0;
+        }
+
+        /* Matrix Theme */
+        body.theme-matrix {
+            --text-color: #00ff41; /* Matrix green */
+            --bg-color: #0a0a0a;
+            --accent-color: #00ff41;
+            --border-color: #008822;
+            --shadow-color: rgba(0, 255, 65, 0.5);
+            --input-bg: #050505;
+            --input-border: #00cc33;
+            --scrollbar-thumb: #008822;
+            --scrollbar-track: #0a0a0a;
+            background-image: linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: matrix-rain 60s linear infinite;
+        }
+
+        @keyframes matrix-rain {
+            from { background-position: 0 0; }
+            to { background-position: 0 100%; }
+        }
+
+        /* Base Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-mono);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 0 20px var(--shadow-color);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            background-color: rgba(0, 0, 0, 0.7); /* Semi-transparent background for terminal */
+        }
+
+        /* Boot Screen */
+        #boot-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            text-align: center;
+            z-index: 100;
+            opacity: 1;
+            transition: opacity 1s ease-out;
+        }
+
+        .boot-line {
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+            margin-bottom: 10px;
+        }
+
+        .boot-line:nth-child(1) { animation-delay: 0.5s; }
+        .boot-line:nth-child(2) { animation-delay: 1.0s; }
+        .boot-line:nth-child(3) { animation-delay: 1.5s; }
+        .boot-line:nth-child(4) { animation-delay: 2.0s; }
+        .boot-line:nth-child(5) { animation-delay: 2.5s; }
+        .boot-line:nth-child(6) { animation-delay: 3.0s; }
+        .boot-line:nth-child(7) { animation-delay: 3.5s; }
+
+        .welcome-prompt {
+            font-size: 2em;
+            margin-top: 30px;
+            opacity: 0;
+            animation: fadeIn 1s forwards 4s;
+        }
+
+        .blinking-cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background-color: var(--text-color);
+            margin-left: 5px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes blink {
+            from, to { background-color: transparent; }
+            50% { background-color: var(--text-color); }
+        }
+
+        /* Terminal Content */
+        .terminal-output {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 1em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
+
+        .terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb);
+            border-radius: 4px;
+            border: 2px solid var(--scrollbar-track);
+        }
+
+        .command-line {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+        }
+
+        .prompt {
+            color: var(--accent-color);
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        #command-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 1em;
+            outline: none;
+            caret-color: var(--text-color);
+        }
+
+        /* Theme Toggles */
+        .theme-toggles {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        .theme-button {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .theme-button:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px var(--shadow-color);
+        }
+
+        .theme-button.active {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border-color: var(--accent-color);
+            box-shadow: 0 0 15px var(--shadow-color);
+            font-weight: bold;
+        }
+
+        /* Output Animations */
+        .output-line {
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .glitch-text {
+            animation: glitch 0.8s infinite;
+        }
+
+        @keyframes glitch {
+            0% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                transform: translate(-2px, -2px);
+            }
+            60% {
+                transform: translate(2px, 2px);
+            }
+            80% {
+                transform: translate(2px, -2px);
+            }
+            100% {
+                transform: translate(0);
+            }
+        }
+
+        /* Specific Command Animations */
+
+        /* deploy --prod */
+        .deploy-animation {
+            width: 100%;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .deploy-bar {
+            width: 10px;
+            height: 30px;
+            background-color: var(--accent-color);
+            margin: 0 2px;
+            transform: scaleY(0.1);
+            animation: pulse-bar 1.5s infinite alternate ease-in-out;
+            border-radius: 2px;
+        }
+
+        .deploy-bar:nth-child(1) { animation-delay: 0s; }
+        .deploy-bar:nth-child(2) { animation-delay: 0.1s; }
+        .deploy-bar:nth-child(3) { animation-delay: 0.2s; }
+        .deploy-bar:nth-child(4) { animation-delay: 0.3s; }
+        .deploy-bar:nth-child(5) { animation-delay: 0.4s; }
+        .deploy-bar:nth-child(6) { animation-delay: 0.5s; }
+        .deploy-bar:nth-child(7) { animation-delay: 0.6s; }
+        .deploy-bar:nth-child(8) { animation-delay: 0.7s; }
+        .deploy-bar:nth-child(9) { animation-delay: 0.8s; }
+        .deploy-bar:nth-child(10) { animation-delay: 0.9s; }
+
+        @keyframes pulse-bar {
+            0% { transform: scaleY(0.1); opacity: 0.5; }
+            50% { transform: scaleY(1); opacity: 1; }
+            100% { transform: scaleY(0.1); opacity: 0.5; }
+        }
+
+        /* docker ps */
+        .docker-animation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: inset 0 0 10px var(--shadow-color);
+        }
+
+        .docker-whale {
+            font-size: 3em; /* Use emoji */
+            color: var(--accent-color);
+            animation: float 3s infinite ease-in-out;
+        }
+
+        .container-box {
+            width: 80px;
+            height: 60px;
+            background-color: var(--border-color);
+            border: 2px solid var(--accent-color);
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 0.7em;
+            color: var(--bg-color);
+            animation: bounce 2s infinite ease-in-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container-box:nth-child(odd) { animation-delay: 0.1s; }
+        .container-box:nth-child(even) { animation-delay: 0.3s; }
+
+        .container-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent);
+            background-size: 10px 10px;
+            opacity: 0.2;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-5px); }
+            75% { transform: translateY(5px); }
+        }
+
+        /* ping 8.8.8.8 */
+        .ping-animation {
+            width: 100%;
+            height: 150px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ping-node {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-color);
+            opacity: 0;
+            animation: ping-node-appear 0.5s forwards;
+        }
+
+        .ping-node.start { top: 50%; left: 10%; transform: translate(-50%, -50%); }
+        .ping-node.end { top: 50%; right: 10%; transform: translate(50%, -50%); }
+        .ping-node.mid1 { top: 20%; left: 35%; transform: translate(-50%, -50%); }
+        .ping-node.mid2 { top: 80%; left: 65%; transform: translate(-50%, -50%); }
+
+        .ping-line {
+            position: absolute;
+            height: 2px;
+            background-color: var(--border-color);
+            opacity: 0;
+            animation: ping-line-draw 1s forwards;
+            transform-origin: left center;
+        }
+
+        .ping-packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--text-color);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--text-color);
+            animation: packet-travel 2s linear infinite;
+        }
+
+        @keyframes ping-node-appear {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes ping-line-draw {
+            from { transform: scaleX(0); opacity: 0; }
+            to { transform: scaleX(1); opacity: 1; }
+        }
+
+        @keyframes packet-travel {
+            0% { transform: translate(0, 0); opacity: 1; }
+            100% { transform: translate(100%, 0); opacity: 1; }
+        }
+
+        /* ls -art */
+        .ls-animation {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            perspective: 1000px;
+        }
+
+        .ls-item {
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--text-color);
+            transform-style: preserve-3d;
+            transform: rotateX(90deg) scale(0.5);
+            opacity: 0;
+            animation: folder-fade-in 0.6s forwards ease-out;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .ls-item i {
+            font-size: 2em;
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+
+        @keyframes folder-fade-in {
+            0% { transform: rotateX(90deg) scale(0.5); opacity: 0; }
+            100% { transform: rotateX(0deg) scale(1); opacity: 1; }
+        }
+
+        /* Easter Eggs */
+
+        /* sudo make me a sandwich */
+        .sandwich-animation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            position: relative;
+            height: 150px;
+        }
+
+        .sandwich-layer {
+            position: absolute;
+            opacity: 0;
+            animation: slide-in-up 0.5s forwards;
+            font-size: 3em;
+        }
+
+        .sandwich-layer:nth-child(1) { animation-delay: 0s; bottom: 0; } /* Bottom bread */
+        .sandwich-layer:nth-child(2) { animation-delay: 0.3s; bottom: 30px; } /* Lettuce */
+        .sandwich-layer:nth-child(3) { animation-delay: 0.6s; bottom: 60px; } /* Tomato */
+        .sandwich-layer:nth-child(4) { animation-delay: 0.9s; bottom: 90px; } /* Cheese */
+        .sandwich-layer:nth-child(5) { animation-delay: 1.2s; bottom: 120px; } /* Meat */
+        .sandwich-layer:nth-child(6) { animation-delay: 1.5s; bottom: 150px; } /* Top bread */
+
+        @keyframes slide-in-up {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* rm -rf / */
+        .meltdown-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 5em;
+            color: red;
+            animation: screen-glitch 0.1s infinite;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        @keyframes screen-glitch {
+            0% {
+                transform: translate(0, 0);
+                filter: hue-rotate(0deg);
+            }
+            25% {
+                transform: translate(5px, -5px);
+                filter: hue-rotate(90deg);
+            }
+            50% {
+                transform: translate(-5px, 5px);
+                filter: hue-rotate(180deg);
+            }
+            75% {
+                transform: translate(5px, 5px);
+                filter: hue-rotate(270deg);
+            }
+            100% {
+                transform: translate(-5px, -5px);
+                filter: hue-rotate(360deg);
+            }
+        }
+
+        .meltdown-text {
+            animation: text-flicker 0.1s infinite;
+        }
+
+        @keyframes text-flicker {
+            0%, 100% { opacity: 1; text-shadow: 0 0 5px red, 0 0 10px red; }
+            50% { opacity: 0.7; text-shadow: none; }
+        }
+
+        /* fortune */
+        .fortune-quote {
+            font-family: var(--font-sans);
+            font-size: 1.2em;
+            margin: 20px 0;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 15px;
+            color: var(--text-color);
+            overflow: hidden; /* Ensures text is hidden until typed */
+            white-space: nowrap; /* Prevents wrapping */
+            width: 0; /* Starts with no width */
+            animation: typing 4s steps(60, end) forwards; /* Adjust steps based on text length */
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        .fortune-quote::after {
+            content: '|';
+            animation: blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--text-color); }
+        }
+
+        /* man command modal */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1000; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.8); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--bg-color);
+            margin: auto;
+            padding: 30px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            width: 80%;
+            max-width: 700px;
+            box-shadow: 0 0 25px var(--shadow-color);
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        }
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-content::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+        .modal-content::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb);
+            border-radius: 4px;
+            border: 2px solid var(--scrollbar-track);
+        }
+
+        .close-button {
+            color: var(--accent-color);
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: var(--text-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .modal-content h2 {
+            color: var(--accent-color);
+            font-family: var(--font-sans);
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .modal-content p {
+            font-family: var(--font-mono);
+            font-size: 0.95em;
+            margin-bottom: 15px;
+        }
+
+        .modal-content strong {
+            color: var(--text-color);
+        }
+
+        .modal-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .modal-content ul li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .modal-content ul li::before {
+            content: '»';
+            color: var(--accent-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        /* Scanline effect (SVG filter) */
+        svg {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .terminal-output, .boot-screen {
+            position: relative; /* Needed for scanline overlay */
+        }
+
+        .scanline-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent 0%,
+                transparent 1px,
+                rgba(0, 0, 0, 0.1) 1px,
+                rgba(0, 0, 0, 0.1) 2px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                height: 90vh;
+            }
+            .boot-screen {
+                font-size: 1.2em;
+            }
+            .welcome-prompt {
+                font-size: 1.5em;
+            }
+            .terminal-output {
+                font-size: 0.9em;
+                padding: 15px;
+            }
+            .command-line {
+                padding: 8px 15px;
+            }
+            .prompt {
+                margin-right: 5px;
+            }
+            .theme-toggles {
+                top: 10px;
+                right: 10px;
+                flex-direction: column;
+                gap: 5px;
+            }
+            .theme-button {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+            .modal-content {
+                width: 90%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- SVG for Glitch Filter -->
+    <svg>
+        <filter id="glitch">
+            <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+            <feColorMatrix in="SourceGraphic" type="matrix"
+                values="1 0 0 0 0
+                        0 1 0 0 0
+                        0 0 1 0 0
+                        0 0 0 1 -0.5" result="colorMatrix" />
+            <feBlend in="SourceGraphic" in2="colorMatrix" mode="normal" />
+        </filter>
+    </svg>
+
+    <!-- Boot Screen Simulation -->
+    <div id="boot-screen">
+        <div class="boot-line">BIOS Version: TERMINAL-OS v1.0.0</div>
+        <div class="boot-line">Checking System Integrity... [OK]</div>
+        <div class="boot-line">Loading Core Modules... [DONE]</div>
+        <div class="boot-line">Initializing Graphics Subsystem... [READY]</div>
+        <div class="boot-line">Establishing Network Connection... [ONLINE]</div>
+        <div class="boot-line">Preparing Command Environment...</div>
+        <div class="boot-line">_</div>
+        <div class="welcome-prompt">
+            Welcome to TERMINAL-OS by DevOpsWithUs<br>
+            <span class="blinking-cursor"></span>
+        </div>
+        <div class="scanline-overlay"></div>
+    </div>
+
+    <!-- Main Terminal Container -->
+    <div class="container" style="display: none;">
+        <div class="terminal-output" id="terminal-output">
+            <div class="scanline-overlay"></div>
+            <span style="color: var(--accent-color);">TERMINAL-OS v1.0.0</span><br>
+            <span style="color: var(--accent-color);">Type 'help' for a list of commands.</span><br><br>
+        </div>
+        <div class="command-line">
+            <span class="prompt">user@terminal-os:~ $</span>
+            <input type="text" id="command-input" autofocus>
+        </div>
+    </div>
+
+    <!-- Theme Toggles -->
+    <div class="theme-toggles">
+        <button class="theme-button active" data-theme="retro">Retro</button>
+        <button class="theme-button" data-theme="cyberpunk">Cyberpunk</button>
+        <button class="theme-button" data-theme="minimal">Minimal</button>
+        <button class="theme-button" data-theme="matrix">Matrix</button>
+    </div>
+
+    <!-- Man Command Modal -->
+    <div id="manModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeManModal">&times;</span>
+            <h2>MANUAL PAGE: <span id="manCommandTitle"></span></h2>
+            <div id="manContent">
+                <!-- Content will be injected here by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        // Initialize Tone.js for sound effects
+        let synth;
+        let bootSoundPlayed = false;
+
+        window.onload = function() {
+            // Initialize Tone.js only when the window is loaded to ensure audio context is ready
+            try {
+                synth = new Tone.Synth().toDestination();
+                console.log("Tone.js initialized successfully.");
+            } catch (e) {
+                console.error("Failed to initialize Tone.js:", e);
+                // Fallback or disable sound features if Tone.js fails
+                synth = null;
+            }
+
+            // Start the boot sequence
+            startBootSequence();
+        };
+
+        const bootScreen = document.getElementById('boot-screen');
+        const container = document.querySelector('.container');
+        const terminalOutput = document.getElementById('terminal-output');
+        const commandInput = document.getElementById('command-input');
+        const themeButtons = document.querySelectorAll('.theme-button');
+        const manModal = document.getElementById('manModal');
+        const closeManModal = document.getElementById('closeManModal');
+        const manCommandTitle = document.getElementById('manCommandTitle');
+        const manContent = document.getElementById('manContent');
+
+        let commandHistory = [];
+        let historyIndex = -1; // -1 means no history command is currently selected
+
+        // Function to play a simple click sound
+        function playClickSound() {
+            if (synth) {
+                synth.triggerAttackRelease("C4", "8n");
+            }
+        }
+
+        // Function to play a short success sound
+        function playSuccessSound() {
+            if (synth) {
+                synth.triggerAttackRelease("E5", "16n");
+            }
+        }
+
+        // Function to play a short error sound
+        function playErrorSound() {
+            if (synth) {
+                synth.triggerAttackRelease("C3", "16n");
+            }
+        }
+
+        // Boot Sequence Simulation
+        function startBootSequence() {
+            if (synth && !bootSoundPlayed) {
+                // Play a simple ascending arpeggio for boot sound
+                const now = Tone.now();
+                synth.triggerAttackRelease("C3", "8n", now);
+                synth.triggerAttackRelease("E3", "8n", now + 0.1);
+                synth.triggerAttackRelease("G3", "8n", now + 0.2);
+                synth.triggerAttackRelease("C4", "8n", now + 0.3);
+                bootSoundPlayed = true;
+            }
+
+            setTimeout(() => {
+                bootScreen.style.opacity = '0';
+                setTimeout(() => {
+                    bootScreen.style.display = 'none';
+                    container.style.display = 'flex';
+                    commandInput.focus();
+                    scrollToBottom();
+                }, 1000); // Wait for fade out
+            }, 5000); // Total boot animation time before fade out starts
+        }
+
+        // Function to append output to the terminal
+        function appendOutput(content, isCommand = false, className = '') {
+            const line = document.createElement('div');
+            line.classList.add('output-line');
+            if (isCommand) {
+                line.innerHTML = `<span class="prompt">user@terminal-os:~ $</span> ${content}`;
+            } else {
+                line.innerHTML = content;
+            }
+            if (className) {
+                line.classList.add(className);
+            }
+            terminalOutput.appendChild(line);
+            scrollToBottom();
+        }
+
+        // Function to scroll the terminal output to the bottom
+        function scrollToBottom() {
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        // Handle command input
+        commandInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default Enter behavior (e.g., new line)
+                const command = commandInput.value.trim();
+                commandInput.value = ''; // Clear input field
+
+                if (command) {
+                    appendOutput(command, true); // Show the command typed by the user
+                    commandHistory.push(command);
+                    historyIndex = commandHistory.length; // Reset history index
+
+                    executeCommand(command);
+                    playClickSound(); // Play sound on command execution
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (commandHistory.length > 0) {
+                    historyIndex = Math.max(0, historyIndex - 1);
+                    commandInput.value = commandHistory[historyIndex];
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex = Math.min(commandHistory.length - 1, historyIndex + 1);
+                    commandInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    commandInput.value = ''; // Clear if at the end of history
+                }
+            }
+        });
+
+        // Command Execution Logic
+        function executeCommand(command) {
+            const parts = command.split(' ');
+            const cmd = parts[0];
+            const args = parts.slice(1);
+
+            terminalOutput.innerHTML += '<br>'; // Add a blank line for better spacing
+
+            switch (cmd) {
+                case 'help':
+                    displayHelp();
+                    break;
+                case 'clear':
+                    terminalOutput.innerHTML = '<div class="scanline-overlay"></div>'; // Clear content but keep overlay
+                    appendOutput('TERMINAL-OS v1.0.0<br>Type \'help\' for a list of commands.', false);
+                    break;
+                case 'deploy':
+                    if (args[0] === '--prod') {
+                        animateDeploy();
+                    } else {
+                        appendOutput(`Error: Invalid argument for 'deploy'. Use 'deploy --prod'.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                case 'docker':
+                    if (args[0] === 'ps') {
+                        animateDockerPs();
+                    } else {
+                        appendOutput(`Error: Invalid argument for 'docker'. Use 'docker ps'.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                case 'ping':
+                    if (args[0] === '8.8.8.8') {
+                        animatePing();
+                    } else {
+                        appendOutput(`Error: Invalid argument for 'ping'. Use 'ping 8.8.8.8'.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                case 'ls':
+                    if (args[0] === '-art') {
+                        animateLsArt();
+                    } else {
+                        appendOutput(`Error: Invalid argument for 'ls'. Use 'ls -art'.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                case 'sudo':
+                    if (command === 'sudo make me a sandwich') {
+                        animateSandwich();
+                    } else {
+                        appendOutput(`Permission denied: You are not in the sudoers file. This incident will be reported.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                case 'rm':
+                    if (command === 'rm -rf /') {
+                        animateMeltdown();
+                    } else {
+                        appendOutput(`Are you sure you want to remove that? (y/N)`, false);
+                        playErrorSound();
+                    }
+                    break;
+                case 'fortune':
+                    displayFortune();
+                    break;
+                case 'man':
+                    if (args.length > 0) {
+                        showManPage(args[0]);
+                    } else {
+                        appendOutput(`Error: What manual page do you want? Try 'man help'.`, false, 'glitch-text');
+                        playErrorSound();
+                    }
+                    break;
+                default:
+                    appendOutput(`Command not found: ${command}`, false, 'glitch-text');
+                    playErrorSound();
+                    break;
+            }
+            terminalOutput.innerHTML += '<br>'; // Add another blank line after output
+            scrollToBottom();
+        }
+
+        function displayHelp() {
+            appendOutput(`Available Commands:`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">help</span>         - Display this help message.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">clear</span>        - Clear the terminal screen.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">deploy --prod</span> - Simulate a production deployment.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">docker ps</span>    - List mock Docker containers.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">ping 8.8.8.8</span> - Visualize network activity.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">ls -art</span>      - List files and directories with flair.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">man [command]</span> - Display manual page for a command.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">fortune</span>      - Display a random poetic quote.`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">sudo make me a sandwich</span> - Try it...`, false);
+            appendOutput(`  <span style="color: var(--accent-color);">rm -rf /</span>     - DANGER: Initiates system meltdown.`, false);
+            playSuccessSound();
+        }
+
+        // Command Animations
+
+        // deploy --prod
+        function animateDeploy() {
+            appendOutput(`Initiating production deployment...`, false);
+            const deployDiv = document.createElement('div');
+            deployDiv.classList.add('deploy-animation');
+            for (let i = 0; i < 10; i++) {
+                const bar = document.createElement('div');
+                bar.classList.add('deploy-bar');
+                deployDiv.appendChild(bar);
+            }
+            terminalOutput.appendChild(deployDiv);
+            scrollToBottom();
+
+            setTimeout(() => {
+                appendOutput(`Deployment complete!`, false);
+                deployDiv.remove(); // Clean up animation div
+                playSuccessSound();
+            }, 3000);
+        }
+
+        // docker ps
+        function animateDockerPs() {
+            appendOutput(`Listing active Docker containers...`, false);
+            const dockerDiv = document.createElement('div');
+            dockerDiv.classList.add('docker-animation');
+
+            const whale = document.createElement('span');
+            whale.classList.add('docker-whale');
+            whale.textContent = '🐳';
+            dockerDiv.appendChild(whale);
+
+            const containers = [
+                { name: 'web-app', status: 'Up 2 days' },
+                { name: 'db-server', status: 'Up 5 hours' },
+                { name: 'redis-cache', status: 'Up 1 day' },
+                { name: 'nginx-proxy', status: 'Up 2 days' }
+            ];
+
+            containers.forEach((c, index) => {
+                setTimeout(() => {
+                    const box = document.createElement('div');
+                    box.classList.add('container-box');
+                    box.innerHTML = `<strong>${c.name}</strong><br>${c.status}`;
+                    dockerDiv.appendChild(box);
+                    scrollToBottom();
+                }, index * 200); // Staggered appearance
+            });
+
+            terminalOutput.appendChild(dockerDiv);
+            scrollToBottom();
+
+            setTimeout(() => {
+                appendOutput(`All containers operational.`, false);
+                playSuccessSound();
+            }, containers.length * 200 + 1000);
+        }
+
+        // ping 8.8.8.8
+        function animatePing() {
+            appendOutput(`Pinging 8.8.8.8 with 4 data bytes...`, false);
+            const pingDiv = document.createElement('div');
+            pingDiv.classList.add('ping-animation');
+            terminalOutput.appendChild(pingDiv);
+
+            const nodes = [
+                { id: 'start', class: 'start' },
+                { id: 'mid1', class: 'mid1' },
+                { id: 'mid2', class: 'mid2' },
+                { id: 'end', class: 'end' }
+            ];
+
+            nodes.forEach(nodeData => {
+                const node = document.createElement('div');
+                node.classList.add('ping-node', nodeData.class);
+                pingDiv.appendChild(node);
+            });
+
+            // Draw lines between nodes
+            const drawLine = (x1, y1, x2, y2, delay) => {
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                const line = document.createElement('div');
+                line.classList.add('ping-line');
+                line.style.width = `${length}px`;
+                line.style.transform = `rotate(${angle}deg)`;
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.animationDelay = `${delay}s`;
+                pingDiv.appendChild(line);
+            };
+
+            // Get positions after nodes are rendered (using a small timeout)
+            setTimeout(() => {
+                const startNode = pingDiv.querySelector('.ping-node.start');
+                const mid1Node = pingDiv.querySelector('.ping-node.mid1');
+                const mid2Node = pingDiv.querySelector('.ping-node.mid2');
+                const endNode = pingDiv.querySelector('.ping-node.end');
+
+                const getCenter = (el) => {
+                    const rect = el.getBoundingClientRect();
+                    const parentRect = pingDiv.getBoundingClientRect();
+                    return {
+                        x: rect.left - parentRect.left + rect.width / 2,
+                        y: rect.top - parentRect.top + rect.height / 2
+                    };
+                };
+
+                const pStart = getCenter(startNode);
+                const pMid1 = getCenter(mid1Node);
+                const pMid2 = getCenter(mid2Node);
+                const pEnd = getCenter(endNode);
+
+                drawLine(pStart.x, pStart.y, pMid1.x, pMid1.y, 0.5);
+                drawLine(pMid1.x, pMid1.y, pMid2.x, pMid2.y, 1.0);
+                drawLine(pMid2.x, pMid2.y, pEnd.x, pEnd.y, 1.5);
+
+                // Animate packets
+                const createPacket = (startNodeEl, endNodeEl, delay) => {
+                    const packet = document.createElement('div');
+                    packet.classList.add('ping-packet');
+                    packet.style.left = `${getCenter(startNodeEl).x}px`;
+                    packet.style.top = `${getCenter(startNodeEl).y}px`;
+                    packet.style.animationDelay = `${delay}s`;
+                    packet.style.setProperty('--end-x', `${getCenter(endNodeEl).x - getCenter(startNodeEl).x}px`);
+                    packet.style.setProperty('--end-y', `${getCenter(endNodeEl).y - getCenter(startNodeEl).y}px`);
+
+                    const packetTravelKeyframes = `
+                        @keyframes packet-travel-${delay.toString().replace('.', '-')}{
+                            0% { transform: translate(0, 0); opacity: 1; }
+                            100% { transform: translate(var(--end-x), var(--end-y)); opacity: 1; }
+                        }
+                    `;
+                    const styleSheet = document.styleSheets[0];
+                    styleSheet.insertRule(packetTravelKeyframes, styleSheet.cssRules.length);
+                    packet.style.animationName = `packet-travel-${delay.toString().replace('.', '-')}`;
+
+                    pingDiv.appendChild(packet);
+                };
+
+                createPacket(startNode, mid1Node, 2.0);
+                createPacket(mid1Node, mid2Node, 2.5);
+                createPacket(mid2Node, endNode, 3.0);
+
+            }, 100); // Small delay to ensure nodes are positioned
+
+            setTimeout(() => {
+                appendOutput(`Ping statistics for 8.8.8.8:`, false);
+                appendOutput(`    Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),`, false);
+                appendOutput(`Approximate round trip times in milli-seconds:`, false);
+                appendOutput(`    Minimum = 20ms, Maximum = 35ms, Average = 28ms`, false);
+                pingDiv.remove();
+                playSuccessSound();
+            }, 4000);
+        }
+
+        // ls -art
+        function animateLsArt() {
+            appendOutput(`Listing files and directories...`, false);
+            const lsDiv = document.createElement('div');
+            lsDiv.classList.add('ls-animation');
+            terminalOutput.appendChild(lsDiv);
+
+            const items = [
+                { name: 'src/', icon: 'fas fa-folder' },
+                { name: 'public/', icon: 'fas fa-folder' },
+                { name: 'index.html', icon: 'fas fa-file-code' },
+                { name: 'style.css', icon: 'fas fa-file-alt' },
+                { name: 'script.js', icon: 'fas fa-file-code' },
+                { name: 'README.md', icon: 'fas fa-book' },
+                { name: '.git/', icon: 'fas fa-code-branch' },
+                { name: 'node_modules/', icon: 'fas fa-box' }
+            ];
+
+            items.forEach((item, index) => {
+                setTimeout(() => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.classList.add('ls-item');
+                    itemDiv.style.animationDelay = `${index * 0.1}s`; // Staggered animation
+                    itemDiv.innerHTML = `<i class="${item.icon}"></i><br>${item.name}`;
+                    lsDiv.appendChild(itemDiv);
+                    scrollToBottom();
+                }, index * 100);
+            });
+
+            setTimeout(() => {
+                appendOutput(`Total ${items.length} items found.`, false);
+                playSuccessSound();
+            }, items.length * 100 + 1000);
+        }
+
+        // Easter Eggs
+
+        // sudo make me a sandwich
+        function animateSandwich() {
+            appendOutput(`Building your sandwich...`, false);
+            const sandwichDiv = document.createElement('div');
+            sandwichDiv.classList.add('sandwich-animation');
+            terminalOutput.appendChild(sandwichDiv);
+
+            const layers = [
+                '🍞', // Bottom bread
+                '🥬', // Lettuce
+                '🍅', // Tomato
+                '🧀', // Cheese
+                '🥩', // Meat (or any protein)
+                '🍞'  // Top bread
+            ];
+
+            layers.forEach((emoji, index) => {
+                const layer = document.createElement('span');
+                layer.classList.add('sandwich-layer');
+                layer.textContent = emoji;
+                layer.style.animationDelay = `${index * 0.3}s`;
+                sandwichDiv.appendChild(layer);
+            });
+
+            setTimeout(() => {
+                appendOutput(`Here's your delicious sandwich! Enjoy! 🥪`, false);
+                playSuccessSound();
+                setTimeout(() => sandwichDiv.remove(), 500); // Remove after a short delay
+            }, layers.length * 300 + 1000);
+        }
+
+        // rm -rf /
+        function animateMeltdown() {
+            appendOutput(`DANGER: Initiating system meltdown...`, false);
+            const meltdownDiv = document.createElement('div');
+            meltdownDiv.classList.add('meltdown-animation');
+            meltdownDiv.innerHTML = '<span class="meltdown-text">SYSTEM CORRUPTED!</span>';
+            document.body.appendChild(meltdownDiv);
+            playErrorSound(); // Play error sound repeatedly
+            const errorInterval = setInterval(() => playErrorSound(), 200);
+
+            setTimeout(() => {
+                clearInterval(errorInterval);
+                meltdownDiv.remove();
+                terminalOutput.innerHTML = '<div class="scanline-overlay"></div>'; // Reset terminal
+                appendOutput(`SYSTEM REBOOTING...`, false, 'glitch-text');
+                appendOutput(`Welcome back to TERMINAL-OS.`, false);
+                playSuccessSound();
+            }, 3000);
+        }
+
+        // fortune
+        function displayFortune() {
+            const fortunes = [
+                "The future belongs to those who believe in the beauty of their dreams.",
+                "Innovation distinguishes between a leader and a follower.",
+                "The only way to do great work is to love what you do.",
+                "Your time is limited, don't waste it living someone else's life.",
+                "Strive not to be a success, but rather to be of value."
+            ];
+            const randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+
+            appendOutput(`Thinking deep thoughts...`, false);
+            const fortuneDiv = document.createElement('div');
+            fortuneDiv.classList.add('fortune-quote');
+            terminalOutput.appendChild(fortuneDiv);
+
+            // Calculate steps for typing animation
+            const textLength = randomFortune.length;
+            const typingDuration = textLength * 0.08; // Adjust typing speed
+            fortuneDiv.style.animation = `typing ${typingDuration}s steps(${textLength}, end) forwards`;
+
+            // Set the text content after a brief delay to allow animation to start
+            setTimeout(() => {
+                fortuneDiv.textContent = randomFortune;
+                playSuccessSound();
+            }, 100); // Small delay before setting text
+
+            setTimeout(() => {
+                appendOutput(`_`, false); // Add a new line after the quote
+                scrollToBottom();
+            }, typingDuration * 1000 + 500); // Wait for typing animation + a little extra
+        }
+
+
+        // Man command modal
+        const manPages = {
+            'help': {
+                title: 'HELP(1) - Display help message',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;help - display information about built-in commands</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;help</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">help</span> command provides a brief overview of the commands available in TERMINAL-OS, along with their basic syntax and purpose. This is a non-functional, purely visual CLI experience.</p>
+                    <p><strong>COMMANDS</strong></p>
+                    <ul>
+                        <li><span style="color: var(--accent-color);">clear</span>: Clears the terminal screen.</li>
+                        <li><span style="color: var(--accent-color);">deploy --prod</span>: Initiates a simulated production deployment with visual feedback.</li>
+                        <li><span style="color: var(--accent-color);">docker ps</span>: Displays a list of mock Docker containers and their statuses.</li>
+                        <li><span style="color: var(--accent-color);">ping 8.8.8.8</span>: Visualizes network packet travel between nodes.</li>
+                        <li><span style="color: var(--accent-color);">ls -art</span>: Lists files and directories with a stylish 3D icon animation.</li>
+                        <li><span style="color: var(--accent-color);">man [command]</span>: Opens the manual page for a specified command.</li>
+                        <li><span style="color: var(--accent-color);">fortune</span>: Generates a random poetic quote with a typing animation.</li>
+                        <li><span style="color: var(--accent-color);">sudo make me a sandwich</span>: An interactive easter egg.</li>
+                        <li><span style="color: var(--accent-color);">rm -rf /</span>: A dangerous, but visually spectacular, easter egg.</li>
+                    </ul>
+                    <p><strong>AUTHOR</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;DevOpsWithUs</p>
+                `
+            },
+            'deploy': {
+                title: 'DEPLOY(1) - Simulate deployment',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;deploy - simulate a production deployment process</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;deploy --prod</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">deploy</span> command, when invoked with the <span style="color: var(--accent-color);">--prod</span> flag, initiates a visual simulation of a software deployment to a production environment. This includes animated loading bars and status messages, designed for aesthetic appeal rather than actual functionality.</p>
+                    <p><strong>OPTIONS</strong></p>
+                    <ul>
+                        <li><span style="color: var(--accent-color);">--prod</span>: (Mandatory) Specifies that the deployment simulation should target a production environment.</li>
+                    </ul>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;deploy --prod</p>
+                `
+            },
+            'docker': {
+                title: 'DOCKER(1) - Container management utility',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;docker - manage Docker containers</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;docker ps</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">docker</span> command provides a visual representation of Docker container status. Currently, only the <span style="color: var(--accent-color);">ps</span> subcommand is supported for visual demonstration purposes.</p>
+                    <p><strong>SUBCOMMANDS</strong></p>
+                    <ul>
+                        <li><span style="color: var(--accent-color);">ps</span>: (Mandatory) Displays a stylized list of mock running Docker containers, complete with animated icons and status indicators.</li>
+                    </ul>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;docker ps</p>
+                `
+            },
+            'ping': {
+                title: 'PING(8) - Send ICMP ECHO_REQUEST packets to network hosts',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ping - visualize network connectivity</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ping 8.8.8.8</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">ping</span> command offers an animated visualization of network packets traveling between a simulated local host and a remote server (e.g., 8.8.8.8). This command is purely for visual effect and does not perform actual network diagnostics.</p>
+                    <p><strong>ARGUMENTS</strong></p>
+                    <ul>
+                        <li><span style="color: var(--accent-color);">8.8.8.8</span>: (Mandatory) The target IP address for the simulated ping. Currently, only 8.8.8.8 is supported for visual demonstration.</li>
+                    </ul>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ping 8.8.8.8</p>
+                `
+            },
+            'ls': {
+                title: 'LS(1) - List directory contents',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ls - list directory contents with visual flair</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ls -art</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">ls</span> command, when used with the <span style="color: var(--accent-color);">--art</span> flag, displays a list of mock files and directories using a creative 3D grid animation. Each item is represented by a stylized ASCII-like icon, showcasing a designer's take on terminal output.</p>
+                    <p><strong>OPTIONS</strong></p>
+                    <ul>
+                        <li><span style="color: var(--accent-color);">--art</span>: (Mandatory) Activates the artistic visualization mode for listing directory contents.</li>
+                    </ul>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;ls -art</p>
+                `
+            },
+            'fortune': {
+                title: 'FORTUNE(6) - Display a random fortune cookie message',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;fortune - display a random poetic quote</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;fortune</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">fortune</span> command presents a randomly selected poetic quote or thought, delivered with an engaging CSS-typed animation. It's designed to provide a moment of reflection within the TERMINAL-OS environment.</p>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;fortune</p>
+                `
+            },
+            'sudo': {
+                title: 'SUDO(8) - execute a command as another user',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;sudo - execute a command as another user (with a twist)</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;sudo make me a sandwich</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">sudo</span> command in TERMINAL-OS is a special easter egg. While typically used to execute commands with superuser privileges, here it responds only to a very specific, whimsical request. Expect a delightful animation!</p>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;sudo make me a sandwich</p>
+                `
+            },
+            'rm': {
+                title: 'RM(1) - remove files or directories',
+                content: `
+                    <p><strong>NAME</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;rm - remove files or directories (with extreme caution)</p>
+                    <p><strong>SYNOPSIS</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;rm -rf /</p>
+                    <p><strong>DESCRIPTION</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;The <span style="color: var(--accent-color);">rm</span> command, particularly with the <span style="color: var(--accent-color);">--rf /</span> arguments, is a highly destructive command in real systems. In TERMINAL-OS, it triggers a dramatic, fake system meltdown animation, showcasing glitch art and visual chaos. This is a purely visual effect and does not harm your system.</p>
+                    <p><strong>DANGER</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;Do NOT attempt 'rm -rf /' on a real system. This command is designed to delete all files recursively and forcefully from the root directory, leading to irreversible data loss and system corruption.</p>
+                    <p><strong>EXAMPLES</strong><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;rm -rf /</p>
+                `
+            }
+        };
+
+        function showManPage(command) {
+            const manPage = manPages[command.toLowerCase()];
+            if (manPage) {
+                manCommandTitle.textContent = command.toUpperCase();
+                manContent.innerHTML = manPage.content;
+                manModal.style.display = 'flex';
+                playSuccessSound();
+            } else {
+                appendOutput(`No manual entry for ${command}.`, false, 'glitch-text');
+                playErrorSound();
+            }
+        }
+
+        closeManModal.addEventListener('click', () => {
+            manModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === manModal) {
+                manModal.style.display = 'none';
+            }
+        });
+
+        // Theme Switching
+        themeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const theme = button.dataset.theme;
+                document.body.className = `theme-${theme}`; // Set body class for theme
+                themeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                playClickSound();
+            });
+        });
+
+        // Initial theme set (default to retro)
+        document.body.classList.add('theme-retro');
+    </script>
+</body>
+</html>
